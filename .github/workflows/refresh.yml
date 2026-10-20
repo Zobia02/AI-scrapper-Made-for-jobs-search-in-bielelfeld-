@@ -1,0 +1,31 @@
+name: Refresh real jobs
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * *"
+    - cron: "37 5 * * 1"
+permissions:
+  contents: read
+concurrency:
+  group: careerscout-discovery
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (vars.REFRESH_FREQUENCY == 'daily' && github.event.schedule == '17 5 * * *') ||
+      (vars.REFRESH_FREQUENCY == 'weekly' && github.event.schedule == '37 5 * * 1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CAREERSCOUT_USER_AGENT: ${{ vars.CAREERSCOUT_USER_AGENT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Fetch into the same persistent database as the dashboard
+        run: python -m services.refresh --require-persistent-db
