@@ -1,5 +1,8 @@
 # CareerScout Germany
 
+[Open the deployed workspace](https://careerscout-germany.vercel.app) — password
+protected. Production deployments follow the `main` branch on GitHub.
+
 A personal Streamlit workspace for finding real Werkstudent, internship and research-assistant opportunities in Germany, understanding language requirements, and tracking applications. Built around an international AI master's student profile.
 
 The app queries public job APIs when you click **Find Jobs** or **Refresh Jobs**. There is no demo-job fallback, no paid service required, and no external AI needed for matching.

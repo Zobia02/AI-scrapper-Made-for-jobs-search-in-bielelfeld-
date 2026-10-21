@@ -64,6 +64,28 @@ See the README for installation, private cloud deployment and opt-in scheduler i
   data, secrets, tests, documentation, virtual environments and CLI state.
 - One dependency warning reports that Starlette will replace its `httpx` test
   client integration with `httpx2`; tests currently pass.
-- These are local checks. A live Vercel build, public URL, PostgreSQL connectivity,
-  multi-instance routing, CV upload and file-download behavior still require
-  deployment verification. No successful cloud deployment is claimed here.
+- GitHub Actions also passed on Linux with Python 3.11 and 3.14 for the hosting
+  changes and the subsequent Python project-metadata fix.
+
+## Live Vercel verification — 21 October 2026
+
+- Production: https://careerscout-germany.vercel.app. Vercel reports the deployment
+  as READY. The project uses Frankfurt and a connected Neon Free PostgreSQL
+  database. The GitHub repository is connected for automatic deployments.
+- The first cloud build exposed missing `[project]` metadata in `pyproject.toml`.
+  Adding metadata and runtime dependencies resolved the build; commit `eb79efc`
+  was deployed successfully.
+- Unauthenticated HTTP returns 401 with the workspace login challenge.
+  Authenticated HTML and `/_stcore/health` return 200. Private responses carry
+  `Cache-Control: private, no-store`.
+- An authenticated production WebSocket rendered the real Streamlit UI without
+  a script exception and connected successfully to PostgreSQL.
+- Clicking Find Jobs through the production WebSocket ingested **16 real jobs**
+  with **zero source errors**. A fresh independent session showed the same 16
+  jobs, confirming persistence. No synthetic jobs or application records were
+  inserted into production.
+- Both production CSV and Excel downloads returned HTTP 200, parsed successfully
+  and contained **7 rows** matching the default filters.
+- Live CV upload, five-minute reconnect behavior, concurrent instances and visual
+  browser layout were not exercised. The README describes the session-memory
+  limitations; local CV parsing and all six page tests passed.
