@@ -8,6 +8,7 @@ from config.settings import DEFAULT_SOURCES, ROOT, database_url
 from database.storage import Storage
 from sources.base import PublicClient
 from sources.registry import enabled_sources
+from services.hosting import on_vercel
 
 log = logging.getLogger("careerscout")
 
@@ -15,8 +16,12 @@ log = logging.getLogger("careerscout")
 def setup_logging():
     if log.handlers:
         return
-    (ROOT / "logs").mkdir(exist_ok=True)
-    handler = RotatingFileHandler(ROOT / "logs" / "refresh.jsonl", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
+    if on_vercel():
+        # Function filesystems are disposable; Vercel captures the process log.
+        handler = logging.StreamHandler()
+    else:
+        (ROOT / "logs").mkdir(exist_ok=True)
+        handler = RotatingFileHandler(ROOT / "logs" / "refresh.jsonl", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(message)s"))
     log.addHandler(handler)
     log.setLevel(logging.INFO)

@@ -48,3 +48,22 @@ Earlier candidate board names (`personio`, `deliveryhero`, `quantco`, `helsing`,
 - No user CV was provided. CV fixtures test text extraction; scanned PDF OCR is intentionally unsupported.
 
 See the README for installation, private cloud deployment and opt-in scheduler instructions.
+
+## Vercel hosting preparation — 21 October 2026
+
+- Full local suite: **64 passed, 3 skipped**, Python 3.14 on Windows. The skipped
+  tests are the opt-in live source checks; they were not rerun during this change.
+- The real `server:app` ASGI entrypoint starts, serves the authenticated HTML and
+  health endpoint, accepts an authenticated Streamlit WebSocket and renders the
+  application without an exception, using a temporary test database.
+- Regression tests reject missing/incorrect authentication on HTTP file routes
+  and WebSockets, malformed Basic headers, incomplete Vercel setup and SQLite
+  on Vercel. They verify `POSTGRES_URL` fallback, environment-only hosted secrets
+  and non-cacheable private responses.
+- Runtime and development dependencies are separated. Deployment excludes local
+  data, secrets, tests, documentation, virtual environments and CLI state.
+- One dependency warning reports that Starlette will replace its `httpx` test
+  client integration with `httpx2`; tests currently pass.
+- These are local checks. A live Vercel build, public URL, PostgreSQL connectivity,
+  multi-instance routing, CV upload and file-download behavior still require
+  deployment verification. No successful cloud deployment is claimed here.

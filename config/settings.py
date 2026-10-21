@@ -11,6 +11,9 @@ def setting(name: str, default: str = "") -> str:
     value = os.getenv(name)
     if value:
         return value
+    if os.getenv("VERCEL") == "1":
+        # Hosted secrets come from Vercel, never a local Streamlit secrets file.
+        return default
     try:
         import streamlit as st
         return str(st.secrets.get(name, default))
@@ -18,8 +21,17 @@ def setting(name: str, default: str = "") -> str:
         return default
 
 
+def configured_database_url() -> str:
+    # Vercel PostgreSQL integrations may supply POSTGRES_URL automatically.
+    return setting("DATABASE_URL") or setting("POSTGRES_URL")
+
+
 def database_url() -> str:
-    url = setting("DATABASE_URL")
+    url = configured_database_url()
+    if os.getenv("VERCEL") == "1" and not url.startswith(
+        ("postgres://", "postgresql://", "postgresql+psycopg://")
+    ):
+        raise RuntimeError("Vercel requires a persistent PostgreSQL DATABASE_URL.")
     if not url:
         (ROOT / "data").mkdir(exist_ok=True)
         return f"sqlite:///{(ROOT / 'data' / 'careerscout.db').as_posix()}"

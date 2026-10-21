@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 from sqlalchemy import create_engine, delete, event, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from config.settings import database_url
 from database.models import (
@@ -11,6 +12,7 @@ from database.models import (
     Setting, SourceLink, utcnow,
 )
 from services.deduplication import canonical_url, fingerprint
+from services.hosting import on_vercel
 
 STATUSES = ["Interested", "Applied", "Assessment", "Interview", "Offer", "Rejected"]
 
@@ -21,6 +23,10 @@ class Storage:
         kwargs = {"pool_pre_ping": True}
         if url.startswith("sqlite"):
             kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
+        elif on_vercel():
+            # Use the provider's pooled URL; don't leave a pool open per instance.
+            kwargs["poolclass"] = NullPool
+            kwargs["connect_args"] = {"connect_timeout": 15}
         self.engine = create_engine(url, **kwargs)
         if url.startswith("sqlite"):
             @event.listens_for(self.engine, "connect")

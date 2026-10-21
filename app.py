@@ -10,14 +10,22 @@ from matching.profile import Profile
 from matching.scorer import score_job
 from services.filters import filter_jobs
 from services.refresh import refresh
+from services.hosting import authorized_header, deployment_issues, on_vercel
 from ui import pages
 from ui.components import sidebar_filters, styling, summary
 
 st.set_page_config(page_title="CareerScout Germany", page_icon="✦", layout="wide")
 styling()
 
+issues = deployment_issues()
+if issues:
+    st.error("Deployment setup required. " + " ".join(issues))
+    st.stop()
+
 # Optional single-user gate. For internet hosting use platform access controls as well.
 password = setting("APP_PASSWORD")
+if password and authorized_header(st.context.headers.get("Authorization", ""), password):
+    st.session_state["authenticated"] = True
 if password and not st.session_state.get("authenticated"):
     st.title("CareerScout Germany")
     with st.form("login"):
@@ -29,6 +37,9 @@ if password and not st.session_state.get("authenticated"):
             else:
                 st.error("Incorrect password.")
     st.stop()
+
+if on_vercel():
+    st.caption("Save profile edits and application notes before leaving. Hosted sessions may reconnect after five minutes; unsaved edits and CV uploads may be lost.")
 
 
 @st.cache_resource

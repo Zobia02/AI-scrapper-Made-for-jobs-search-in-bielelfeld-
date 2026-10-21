@@ -174,6 +174,67 @@ DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE?sslmode=requi
 
 Switching database URLs does not migrate your existing SQLite records. Keep the old database and exports. This first release creates schema version 1; future schema changes require an explicit migration, not dropping tables. Set up provider backups before long-term use.
 
+## Deploy to Vercel
+
+The repository includes a FastAPI entrypoint in `server.py` that mounts the
+Streamlit ASGI app and protects the page, WebSocket, uploads and downloads with
+the same workspace password. Vercel uses Python 3.14, the Frankfurt region and a
+300-second function duration. Local `streamlit run app.py` still works.
+
+1. Sign in to [Vercel](https://vercel.com/new) and import this GitHub repository.
+2. Keep the repository root as the Root Directory. The checked-in configuration
+   selects **FastAPI** and `server:app`; no custom build command is needed.
+3. Connect a persistent PostgreSQL database through Vercel Storage or your
+   database provider. Use its pooled connection URL with SSL enabled. Set
+   `DATABASE_URL` in the project's Production and Preview environment variables.
+   `POSTGRES_URL` supplied by an integration is also accepted; `DATABASE_URL`
+   takes precedence. Use a separate database for previews when testing changes.
+4. Set `APP_PASSWORD` to a long random workspace password in those environments.
+   Both a password and PostgreSQL are required on Vercel. Missing configuration
+   returns HTTP 503 and never opens an unprotected workspace or creates a
+   temporary SQLite database.
+5. Deploy. At the browser sign-in prompt, use username **careerscout** and your
+   `APP_PASSWORD`. Keep Vercel's available access protection enabled as well.
+6. Click **Find Jobs**, save a listing, and reload to confirm persistence. Test
+   CV uploads and CSV/Excel downloads on the deployed URL before relying on them.
+
+You can also deploy the current local files with the official CLI:
+
+```powershell
+npx vercel login
+npx vercel link
+npx vercel env add DATABASE_URL production
+npx vercel env add APP_PASSWORD production
+npx vercel --prod
+```
+
+Enter secrets at the CLI prompts or in the Vercel dashboard; never put them in
+Git, source code or a command-line argument. `.vercelignore` excludes local data,
+CV/application databases, secrets, logs, tests and the virtual environment from
+uploads. `.gitignore` also excludes environment files downloaded by the CLI.
+Changing an environment variable requires a new deployment.
+
+For a local check of the same ASGI entrypoint:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn server:app --host 127.0.0.1 --port 8000
+```
+
+The authenticated `/_stcore/health` endpoint checks the Streamlit runtime. It
+does not verify the database or source APIs. Test discovery and persistence in
+the UI too. Vercel's function duration means sessions reconnect periodically;
+save edits promptly. CV uploads are limited to 4 MB on Vercel. Streamlit keeps
+unsaved edits, uploaded CV files and generated downloads in instance memory,
+so reconnects or requests routed to another instance can lose those temporary
+items. PostgreSQL preserves saved profiles, jobs and application history.
+Background refreshes use the existing GitHub Actions workflow and the same
+database; no scheduled collection runs until configured.
+
+See [Vercel's Python runtime documentation](https://vercel.com/docs/functions/runtimes/python)
+and [FastAPI deployment guide](https://vercel.com/docs/frameworks/backend/fastapi).
+The local ASGI tests validate authentication and rendering; they do not prove
+that a Vercel deployment has been created or passed production checks.
+
 ## Deploy through GitHub and Streamlit Community Cloud
 
 The local build does not automatically push your repository or create a cloud account.
@@ -229,6 +290,7 @@ python -m services.refresh --require-persistent-db
 ## Testing and architecture
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest
 ```
 
@@ -246,6 +308,8 @@ They test access/schema, not a guarantee that a specific company has open jobs. 
 
 ```text
 app.py                     Streamlit entrypoint, navigation and score cache
+server.py                  Vercel/FastAPI entrypoint and authenticated ASGI mount
+vercel.json                Vercel region, runtime duration and file exclusions
 config/                    Environment/secrets and reviewed source defaults
 ui/                        Reusable cards, filters and six page implementations
 sources/                   HTTP safeguards, Pydantic job data, four API adapters

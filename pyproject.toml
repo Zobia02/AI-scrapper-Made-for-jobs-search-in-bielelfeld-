@@ -1,0 +1,6 @@
+[tool.vercel]
+entrypoint = "server:app"
+
+[tool.vercel.fastapi.static]
+# Keep downloads and uploads behind the workspace authentication middleware.
+cdn = false
