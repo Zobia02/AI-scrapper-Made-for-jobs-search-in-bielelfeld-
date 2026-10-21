@@ -4,7 +4,9 @@ __pycache__/
 *.pyc
 .env*
 !.env.example
-.vercel/
+.vercel
+.agents/
+skills-lock.json
 node_modules/
 .streamlit/secrets.toml
 data/
